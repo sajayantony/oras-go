@@ -19,8 +19,8 @@ import (
 	"context"
 	"encoding/json"
 
+	artifactspec "github.com/oci-playground/artifact-spec/specs-go/v1"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 	"oras.land/oras-go/v2/internal/descriptor"
 	"oras.land/oras-go/v2/internal/docker"
 )
@@ -68,13 +68,13 @@ func DownEdges(ctx context.Context, fetcher Fetcher, node ocispec.Descriptor) ([
 			return nil, err
 		}
 
-		var manifest artifactspec.Manifest
+		var manifest artifactspec.ArtifactManifest
 		if err := json.Unmarshal(content, &manifest); err != nil {
 			return nil, err
 		}
 		var nodes []ocispec.Descriptor
-		if descriptor.FromArtifact(manifest.Subject) != descriptor.Empty {
-			nodes = append(nodes, descriptor.ArtifactToOCI(manifest.Subject))
+		if descriptor.FromArtifact(manifest.Reference) != descriptor.Empty {
+			nodes = append(nodes, descriptor.ArtifactToOCI(manifest.Reference))
 		}
 		for _, blob := range manifest.Blobs {
 			nodes = append(nodes, descriptor.ArtifactToOCI(blob))

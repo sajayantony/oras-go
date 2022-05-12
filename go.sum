@@ -1,3 +1,5 @@
+github.com/oci-playground/artifact-spec v0.0.0-20220506233500-8fed0a29d06f h1:Dak7aFfhhP+sXD7+1OcRU31haFdKmKasKBSuJJGJEUo=
+github.com/oci-playground/artifact-spec v0.0.0-20220506233500-8fed0a29d06f/go.mod h1:NY7llZsIsyNV25K6rnp/j1/Fid+pVPxhhtO/HKCBPhk=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.0.2 h1:9yCKha/T5XdGtO0q9Q9a6T5NUCsTn/DrBg0D7ufOcFM=

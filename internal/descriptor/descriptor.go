@@ -18,7 +18,6 @@ package descriptor
 import (
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 )
 
 // Descriptor contains the minimun information to describe the disposition of
@@ -48,7 +47,7 @@ func FromOCI(desc ocispec.Descriptor) Descriptor {
 }
 
 // FromArtifact shrinks the artifact descriptor to the minimum.
-func FromArtifact(desc artifactspec.Descriptor) Descriptor {
+func FromArtifact(desc ocispec.Descriptor) Descriptor {
 	return Descriptor{
 		MediaType: desc.MediaType,
 		Digest:    desc.Digest,
@@ -57,7 +56,7 @@ func FromArtifact(desc artifactspec.Descriptor) Descriptor {
 }
 
 // ArtifactToOCI converts artifact descriptor to OCI descriptor.
-func ArtifactToOCI(desc artifactspec.Descriptor) ocispec.Descriptor {
+func ArtifactToOCI(desc ocispec.Descriptor) ocispec.Descriptor {
 	return ocispec.Descriptor{
 		MediaType:   desc.MediaType,
 		Digest:      desc.Digest,
@@ -68,8 +67,8 @@ func ArtifactToOCI(desc artifactspec.Descriptor) ocispec.Descriptor {
 }
 
 // OCIToArtifact converts OCI descriptor to artifact descriptor.
-func OCIToArtifact(desc ocispec.Descriptor) artifactspec.Descriptor {
-	return artifactspec.Descriptor{
+func OCIToArtifact(desc ocispec.Descriptor) ocispec.Descriptor {
+	return ocispec.Descriptor{
 		MediaType:   desc.MediaType,
 		Digest:      desc.Digest,
 		Size:        desc.Size,

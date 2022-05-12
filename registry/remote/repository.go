@@ -28,7 +28,6 @@ import (
 
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 	"oras.land/oras-go/v2/errdef"
 	"oras.land/oras-go/v2/internal/cas"
 	"oras.land/oras-go/v2/internal/descriptor"
@@ -325,7 +324,7 @@ func (r *Repository) tags(ctx context.Context, fn func(tags []string) error, url
 // Reference: https://github.com/oras-project/artifacts-spec/blob/main/manifest-referrers-api.md
 func (r *Repository) UpEdges(ctx context.Context, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
 	var res []ocispec.Descriptor
-	if err := r.Referrers(ctx, desc, func(referrers []artifactspec.Descriptor) error {
+	if err := r.Referrers(ctx, desc, func(referrers []ocispec.Descriptor) error {
 		for _, referrer := range referrers {
 			res = append(res, descriptor.ArtifactToOCI(referrer))
 		}
@@ -339,7 +338,7 @@ func (r *Repository) UpEdges(ctx context.Context, desc ocispec.Descriptor) ([]oc
 // Referrers returns the manifest descriptors directly referencing the given
 // manifest descriptor.
 // Reference: https://github.com/oras-project/artifacts-spec/blob/main/manifest-referrers-api.md
-func (r *Repository) Referrers(ctx context.Context, desc ocispec.Descriptor, fn func(referrers []artifactspec.Descriptor) error) error {
+func (r *Repository) Referrers(ctx context.Context, desc ocispec.Descriptor, fn func(referrers []ocispec.Descriptor) error) error {
 	// TODO(shizhMSFT): filter artifact type
 	ref := r.Reference
 	ref.Reference = desc.Digest.String()
@@ -357,7 +356,7 @@ func (r *Repository) Referrers(ctx context.Context, desc ocispec.Descriptor, fn 
 
 // referrers returns a single page of the manifest descriptors directly
 // referencing the given manifest descriptor with the next link.
-func (r *Repository) referrers(ctx context.Context, desc ocispec.Descriptor, fn func(referrers []artifactspec.Descriptor) error, url string) (string, error) {
+func (r *Repository) referrers(ctx context.Context, desc ocispec.Descriptor, fn func(referrers []ocispec.Descriptor) error, url string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
@@ -378,14 +377,12 @@ func (r *Repository) referrers(ctx context.Context, desc ocispec.Descriptor, fn 
 		return "", errutil.ParseErrorResponse(resp)
 	}
 
-	var page struct {
-		References []artifactspec.Descriptor `json:"references"`
-	}
+	var page ocispec.Index
 	lr := limitReader(resp.Body, r.MaxMetadataBytes)
 	if err := json.NewDecoder(lr).Decode(&page); err != nil {
 		return "", fmt.Errorf("%s %q: failed to decode response: %w", resp.Request.Method, resp.Request.URL, err)
 	}
-	if err := fn(page.References); err != nil {
+	if err := fn(page.Manifests); err != nil {
 		return "", err
 	}
 

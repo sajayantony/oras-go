@@ -92,7 +92,7 @@ func buildRepositoryBlobUploadURL(plainHTTP bool, ref registry.Reference) string
 // Reference: https://github.com/oras-project/artifacts-spec/blob/main/manifest-referrers-api.md
 func buildArtifactReferrerURL(plainHTTP bool, ref registry.Reference) string {
 	return fmt.Sprintf(
-		"%s://%s/oras/artifacts/v1/%s/manifests/%s/referrers",
+		"%s://%s/v2/%s/_oci/artifacts/referrers?digest=%s",
 		buildScheme(plainHTTP),
 		ref.Host(),
 		ref.Repository,
