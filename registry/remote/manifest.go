@@ -18,6 +18,7 @@ package remote
 import (
 	"strings"
 
+	ociartifactspec "github.com/oci-playground/artifact-spec/specs-go/v1"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 	"oras.land/oras-go/v2/internal/docker"
@@ -30,6 +31,7 @@ var defaultManifestMediaTypes = []string{
 	ocispec.MediaTypeImageManifest,
 	ocispec.MediaTypeImageIndex,
 	artifactspec.MediaTypeArtifactManifest,
+	ociartifactspec.MediaTypeArtifactManifest,
 }
 
 // defaultManifestAcceptHeader is the default set in the `Accept` header for
