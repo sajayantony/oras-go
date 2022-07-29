@@ -32,9 +32,9 @@ import (
 
 	_ "crypto/sha256"
 
+	artifactspec "github.com/oci-playground/artifact-spec/specs-go/v1"
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 	"golang.org/x/sync/errgroup"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content"
@@ -1891,8 +1891,8 @@ func TestStore_UpEdges(t *testing.T) {
 		appendBlob(ocispec.MediaTypeImageIndex, indexJSON)
 	}
 	generateArtifactManifest := func(subject ocispec.Descriptor, blobs ...ocispec.Descriptor) {
-		var manifest artifactspec.Manifest
-		manifest.Subject = descriptor.OCIToArtifact(subject)
+		var manifest artifactspec.ArtifactManifest
+		manifest.Refers = descriptor.OCIToArtifact(subject)
 		for _, blob := range blobs {
 			manifest.Blobs = append(manifest.Blobs, descriptor.OCIToArtifact(blob))
 		}

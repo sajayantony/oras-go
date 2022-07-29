@@ -73,8 +73,8 @@ func DownEdges(ctx context.Context, fetcher Fetcher, node ocispec.Descriptor) ([
 			return nil, err
 		}
 		var nodes []ocispec.Descriptor
-		if descriptor.FromArtifact(manifest.Reference) != descriptor.Empty {
-			nodes = append(nodes, descriptor.ArtifactToOCI(manifest.Reference))
+		if descriptor.FromArtifact(manifest.Refers) != descriptor.Empty {
+			nodes = append(nodes, descriptor.ArtifactToOCI(manifest.Refers))
 		}
 		for _, blob := range manifest.Blobs {
 			nodes = append(nodes, descriptor.ArtifactToOCI(blob))

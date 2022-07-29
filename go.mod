@@ -9,4 +9,6 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
 
-require github.com/oci-playground/artifact-spec v0.0.0-20220506233500-8fed0a29d06f // indirect
+require github.com/oci-playground/artifact-spec v0.0.0-20220506233500-8fed0a29d06f
+
+replace github.com/oci-playground/artifact-spec => github.com/sajayantony/artifact-spec v0.0.0-20220520185102-442680b96f8d

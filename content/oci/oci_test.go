@@ -31,9 +31,9 @@ import (
 	"sync/atomic"
 	"testing"
 
+	artifactspec "github.com/oci-playground/artifact-spec/specs-go/v1"
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 	"golang.org/x/sync/errgroup"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content"
@@ -672,7 +672,7 @@ func TestStore_UpEdges(t *testing.T) {
 	}
 	generateArtifactManifest := func(subject ocispec.Descriptor, blobs ...ocispec.Descriptor) {
 		var manifest artifactspec.Manifest
-		manifest.Subject = descriptor.OCIToArtifact(subject)
+		manifest.Reference = descriptor.OCIToArtifact(subject)
 		for _, blob := range blobs {
 			manifest.Blobs = append(manifest.Blobs, descriptor.OCIToArtifact(blob))
 		}
@@ -786,7 +786,7 @@ func TestStore_ExistingStore(t *testing.T) {
 
 	generateArtifactManifest := func(subject ocispec.Descriptor, blobs ...ocispec.Descriptor) {
 		var manifest artifactspec.Manifest
-		manifest.Subject = descriptor.OCIToArtifact(subject)
+		manifest.Reference = descriptor.OCIToArtifact(subject)
 		for _, blob := range blobs {
 			manifest.Blobs = append(manifest.Blobs, descriptor.OCIToArtifact(blob))
 		}

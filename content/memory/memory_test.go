@@ -333,7 +333,7 @@ func TestStoreUpEdges(t *testing.T) {
 	}
 	generateArtifactManifest := func(subject ocispec.Descriptor, blobs ...ocispec.Descriptor) {
 		var manifest artifactspec.Manifest
-		manifest.Subject = descriptor.OCIToArtifact(subject)
+		manifest.Refers = descriptor.OCIToArtifact(subject)
 		for _, blob := range blobs {
 			manifest.Blobs = append(manifest.Blobs, descriptor.OCIToArtifact(blob))
 		}
