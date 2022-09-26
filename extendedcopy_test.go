@@ -30,14 +30,12 @@ import (
 	"testing"
 
 	"github.com/opencontainers/go-digest"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/content/memory"
 	"oras.land/oras-go/v2/errdef"
-	"oras.land/oras-go/v2/internal/descriptor"
 	"oras.land/oras-go/v2/registry/remote"
 )
 
@@ -47,17 +45,17 @@ func TestExtendedCopy_FullCopy(t *testing.T) {
 
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateManifest := func(config ocispec.Descriptor, layers ...ocispec.Descriptor) {
-		manifest := ocispec.Manifest{
+	generateManifest := func(config v1.Descriptor, layers ...v1.Descriptor) {
+		manifest := v1.Manifest{
 			Config: config,
 			Layers: layers,
 		}
@@ -65,27 +63,27 @@ func TestExtendedCopy_FullCopy(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageManifest, manifestJSON)
+		appendBlob(v1.MediaTypeImageManifest, manifestJSON)
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, blobs ...ocispec.Descriptor) {
-		var manifest ocispec.Artifact
+	generateArtifactManifest := func(subject v1.Descriptor, blobs ...v1.Descriptor) {
+		var manifest v1.Artifact
 		manifest.Subject = &subject
 		manifest.Blobs = append(manifest.Blobs, blobs...)
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeArtifactManifest, manifestJSON)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON)
 	}
 
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("config")) // Blob 0
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("foo"))     // Blob 1
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("bar"))     // Blob 2
-	generateManifest(descs[0], descs[1:3]...)                  // Blob 3
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("sig_1"))   // Blob 4
-	generateArtifactManifest(descs[3], descs[4])               // Blob 5
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("sig_2"))   // Blob 6
-	generateArtifactManifest(descs[5], descs[6])               // Blob 7
+	appendBlob(v1.MediaTypeImageConfig, []byte("config")) // Blob 0
+	appendBlob(v1.MediaTypeImageLayer, []byte("foo"))     // Blob 1
+	appendBlob(v1.MediaTypeImageLayer, []byte("bar"))     // Blob 2
+	generateManifest(descs[0], descs[1:3]...)             // Blob 3
+	appendBlob(v1.MediaTypeImageLayer, []byte("sig_1"))   // Blob 4
+	generateArtifactManifest(descs[3], descs[4])          // Blob 5
+	appendBlob(v1.MediaTypeImageLayer, []byte("sig_2"))   // Blob 6
+	generateArtifactManifest(descs[5], descs[6])          // Blob 7
 
 	ctx := context.Background()
 	for i := range blobs {
@@ -135,17 +133,17 @@ func TestExtendedCopy_FullCopy(t *testing.T) {
 func TestExtendedCopyGraph_FullCopy(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateManifest := func(config ocispec.Descriptor, layers ...ocispec.Descriptor) {
-		manifest := ocispec.Manifest{
+	generateManifest := func(config v1.Descriptor, layers ...v1.Descriptor) {
+		manifest := v1.Manifest{
 			Config: config,
 			Layers: layers,
 		}
@@ -153,44 +151,44 @@ func TestExtendedCopyGraph_FullCopy(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageManifest, manifestJSON)
+		appendBlob(v1.MediaTypeImageManifest, manifestJSON)
 	}
-	generateIndex := func(manifests ...ocispec.Descriptor) {
-		index := ocispec.Index{
+	generateIndex := func(manifests ...v1.Descriptor) {
+		index := v1.Index{
 			Manifests: manifests,
 		}
 		indexJSON, err := json.Marshal(index)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageIndex, indexJSON)
+		appendBlob(v1.MediaTypeImageIndex, indexJSON)
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, blobs ...ocispec.Descriptor) {
-		var manifest ocispec.Artifact
+	generateArtifactManifest := func(subject v1.Descriptor, blobs ...v1.Descriptor) {
+		var manifest v1.Artifact
 		manifest.Subject = &subject
 		manifest.Blobs = append(manifest.Blobs, blobs...)
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeArtifactManifest, manifestJSON)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON)
 	}
 
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("config_1")) // Blob 0
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("foo"))       // Blob 1
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("bar"))       // Blob 2
-	generateManifest(descs[0], descs[1:3]...)                    // Blob 3
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("baz"))       // Blob 4
-	generateManifest(descs[0], descs[4])                         // Blob 5 (root)
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("config_2")) // Blob 6
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("hello"))     // Blob 7
-	generateManifest(descs[6], descs[7])                         // Blob 8
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("sig_1"))     // Blob 9
-	generateArtifactManifest(descs[8], descs[9])                 // Blob 10
-	generateIndex(descs[3], descs[10])                           // Blob 11 (root)
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("goodbye"))   // Blob 12
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("sig_2"))     // Blob 13
-	generateArtifactManifest(descs[12], descs[13])               // Blob 14 (root)
+	appendBlob(v1.MediaTypeImageConfig, []byte("config_1")) // Blob 0
+	appendBlob(v1.MediaTypeImageLayer, []byte("foo"))       // Blob 1
+	appendBlob(v1.MediaTypeImageLayer, []byte("bar"))       // Blob 2
+	generateManifest(descs[0], descs[1:3]...)               // Blob 3
+	appendBlob(v1.MediaTypeImageLayer, []byte("baz"))       // Blob 4
+	generateManifest(descs[0], descs[4])                    // Blob 5 (root)
+	appendBlob(v1.MediaTypeImageConfig, []byte("config_2")) // Blob 6
+	appendBlob(v1.MediaTypeImageLayer, []byte("hello"))     // Blob 7
+	generateManifest(descs[6], descs[7])                    // Blob 8
+	appendBlob(v1.MediaTypeImageLayer, []byte("sig_1"))     // Blob 9
+	generateArtifactManifest(descs[8], descs[9])            // Blob 10
+	generateIndex(descs[3], descs[10])                      // Blob 11 (root)
+	appendBlob(v1.MediaTypeImageLayer, []byte("goodbye"))   // Blob 12
+	appendBlob(v1.MediaTypeImageLayer, []byte("sig_2"))     // Blob 13
+	generateArtifactManifest(descs[12], descs[13])          // Blob 14 (root)
 
 	ctx := context.Background()
 	verifyCopy := func(dst content.Fetcher, copiedIndice []int, uncopiedIndice []int) {
@@ -256,17 +254,17 @@ func TestExtendedCopyGraph_PartialCopy(t *testing.T) {
 
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateManifest := func(config ocispec.Descriptor, layers ...ocispec.Descriptor) {
-		manifest := ocispec.Manifest{
+	generateManifest := func(config v1.Descriptor, layers ...v1.Descriptor) {
+		manifest := v1.Manifest{
 			Config: config,
 			Layers: layers,
 		}
@@ -274,26 +272,26 @@ func TestExtendedCopyGraph_PartialCopy(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageManifest, manifestJSON)
+		appendBlob(v1.MediaTypeImageManifest, manifestJSON)
 	}
-	generateIndex := func(manifests ...ocispec.Descriptor) {
-		index := ocispec.Index{
+	generateIndex := func(manifests ...v1.Descriptor) {
+		index := v1.Index{
 			Manifests: manifests,
 		}
 		indexJSON, err := json.Marshal(index)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageIndex, indexJSON)
+		appendBlob(v1.MediaTypeImageIndex, indexJSON)
 	}
 
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("config")) // Blob 0
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("foo"))     // Blob 1
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("bar"))     // Blob 2
-	generateManifest(descs[0], descs[1:3]...)                  // Blob 3
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("hello"))   // Blob 4
-	generateManifest(descs[0], descs[4])                       // Blob 5
-	generateIndex(descs[3], descs[5])                          // Blob 6 (root)
+	appendBlob(v1.MediaTypeImageConfig, []byte("config")) // Blob 0
+	appendBlob(v1.MediaTypeImageLayer, []byte("foo"))     // Blob 1
+	appendBlob(v1.MediaTypeImageLayer, []byte("bar"))     // Blob 2
+	generateManifest(descs[0], descs[1:3]...)             // Blob 3
+	appendBlob(v1.MediaTypeImageLayer, []byte("hello"))   // Blob 4
+	generateManifest(descs[0], descs[4])                  // Blob 5
+	generateIndex(descs[3], descs[5])                     // Blob 6 (root)
 
 	ctx := context.Background()
 	for i := range blobs {
@@ -340,17 +338,17 @@ func TestExtendedCopyGraph_PartialCopy(t *testing.T) {
 func TestExtendedCopyGraph_WithDepthOption(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateManifest := func(config ocispec.Descriptor, layers ...ocispec.Descriptor) {
-		manifest := ocispec.Manifest{
+	generateManifest := func(config v1.Descriptor, layers ...v1.Descriptor) {
+		manifest := v1.Manifest{
 			Config: config,
 			Layers: layers,
 		}
@@ -358,44 +356,44 @@ func TestExtendedCopyGraph_WithDepthOption(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageManifest, manifestJSON)
+		appendBlob(v1.MediaTypeImageManifest, manifestJSON)
 	}
-	generateIndex := func(manifests ...ocispec.Descriptor) {
-		index := ocispec.Index{
+	generateIndex := func(manifests ...v1.Descriptor) {
+		index := v1.Index{
 			Manifests: manifests,
 		}
 		indexJSON, err := json.Marshal(index)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageIndex, indexJSON)
+		appendBlob(v1.MediaTypeImageIndex, indexJSON)
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, blobs ...ocispec.Descriptor) {
-		var manifest ocispec.Artifact
+	generateArtifactManifest := func(subject v1.Descriptor, blobs ...v1.Descriptor) {
+		var manifest v1.Artifact
 		manifest.Subject = &subject
 		manifest.Blobs = append(manifest.Blobs, blobs...)
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeArtifactManifest, manifestJSON)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON)
 	}
 
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("config_1")) // Blob 0
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("foo"))       // Blob 1
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("bar"))       // Blob 2
-	generateManifest(descs[0], descs[1:3]...)                    // Blob 3
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("baz"))       // Blob 4
-	generateManifest(descs[0], descs[4])                         // Blob 5 (root)
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("config_2")) // Blob 6
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("hello"))     // Blob 7
-	generateManifest(descs[6], descs[7])                         // Blob 8
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("sig_1"))     // Blob 9
-	generateArtifactManifest(descs[8], descs[9])                 // Blob 10
-	generateIndex(descs[3], descs[10])                           // Blob 11 (root)
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("goodbye"))   // Blob 12
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("sig_2"))     // Blob 13
-	generateArtifactManifest(descs[12], descs[13])               // Blob 14 (root)
+	appendBlob(v1.MediaTypeImageConfig, []byte("config_1")) // Blob 0
+	appendBlob(v1.MediaTypeImageLayer, []byte("foo"))       // Blob 1
+	appendBlob(v1.MediaTypeImageLayer, []byte("bar"))       // Blob 2
+	generateManifest(descs[0], descs[1:3]...)               // Blob 3
+	appendBlob(v1.MediaTypeImageLayer, []byte("baz"))       // Blob 4
+	generateManifest(descs[0], descs[4])                    // Blob 5 (root)
+	appendBlob(v1.MediaTypeImageConfig, []byte("config_2")) // Blob 6
+	appendBlob(v1.MediaTypeImageLayer, []byte("hello"))     // Blob 7
+	generateManifest(descs[6], descs[7])                    // Blob 8
+	appendBlob(v1.MediaTypeImageLayer, []byte("sig_1"))     // Blob 9
+	generateArtifactManifest(descs[8], descs[9])            // Blob 10
+	generateIndex(descs[3], descs[10])                      // Blob 11 (root)
+	appendBlob(v1.MediaTypeImageLayer, []byte("goodbye"))   // Blob 12
+	appendBlob(v1.MediaTypeImageLayer, []byte("sig_2"))     // Blob 13
+	generateArtifactManifest(descs[12], descs[13])          // Blob 14 (root)
 
 	ctx := context.Background()
 	verifyCopy := func(dst content.Fetcher, copiedIndice []int, uncopiedIndice []int) {
@@ -472,17 +470,17 @@ func TestExtendedCopyGraph_WithDepthOption(t *testing.T) {
 func TestExtendedCopyGraph_WithFindPredecessorsOption(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateManifest := func(config ocispec.Descriptor, layers ...ocispec.Descriptor) {
-		manifest := ocispec.Manifest{
+	generateManifest := func(config v1.Descriptor, layers ...v1.Descriptor) {
+		manifest := v1.Manifest{
 			Config: config,
 			Layers: layers,
 		}
@@ -490,41 +488,41 @@ func TestExtendedCopyGraph_WithFindPredecessorsOption(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageManifest, manifestJSON)
+		appendBlob(v1.MediaTypeImageManifest, manifestJSON)
 	}
-	generateIndex := func(manifests ...ocispec.Descriptor) {
-		index := ocispec.Index{
+	generateIndex := func(manifests ...v1.Descriptor) {
+		index := v1.Index{
 			Manifests: manifests,
 		}
 		indexJSON, err := json.Marshal(index)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeImageIndex, indexJSON)
+		appendBlob(v1.MediaTypeImageIndex, indexJSON)
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, blobs ...ocispec.Descriptor) {
-		var manifest ocispec.Artifact
+	generateArtifactManifest := func(subject v1.Descriptor, blobs ...v1.Descriptor) {
+		var manifest v1.Artifact
 		manifest.Subject = &subject
 		manifest.Blobs = append(manifest.Blobs, blobs...)
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(ocispec.MediaTypeArtifactManifest, manifestJSON)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON)
 	}
 
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("config_1")) // Blob 0
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("foo"))       // Blob 1
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("bar"))       // Blob 2
-	generateManifest(descs[0], descs[1:3]...)                    // Blob 3
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("sig_1"))     // Blob 4
-	generateArtifactManifest(descs[3], descs[4])                 // Blob 5 (root)
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("baz"))       // Blob 6
-	generateArtifactManifest(descs[3], descs[6])                 // Blob 7 (root)
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("config_2")) // Blob 8
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("hello"))     // Blob 9
-	generateManifest(descs[8], descs[9])                         // Blob 10
-	generateIndex(descs[3], descs[10])                           // Blob 11 (root)
+	appendBlob(v1.MediaTypeImageConfig, []byte("config_1")) // Blob 0
+	appendBlob(v1.MediaTypeImageLayer, []byte("foo"))       // Blob 1
+	appendBlob(v1.MediaTypeImageLayer, []byte("bar"))       // Blob 2
+	generateManifest(descs[0], descs[1:3]...)               // Blob 3
+	appendBlob(v1.MediaTypeImageLayer, []byte("sig_1"))     // Blob 4
+	generateArtifactManifest(descs[3], descs[4])            // Blob 5 (root)
+	appendBlob(v1.MediaTypeImageLayer, []byte("baz"))       // Blob 6
+	generateArtifactManifest(descs[3], descs[6])            // Blob 7 (root)
+	appendBlob(v1.MediaTypeImageConfig, []byte("config_2")) // Blob 8
+	appendBlob(v1.MediaTypeImageLayer, []byte("hello"))     // Blob 9
+	generateManifest(descs[8], descs[9])                    // Blob 10
+	generateIndex(descs[3], descs[10])                      // Blob 11 (root)
 
 	ctx := context.Background()
 	verifyCopy := func(dst content.Fetcher, copiedIndice []int, uncopiedIndice []int) {
@@ -556,16 +554,16 @@ func TestExtendedCopyGraph_WithFindPredecessorsOption(t *testing.T) {
 	// test extended copy by descs[3] with media type filter
 	dst := memory.New()
 	opts := oras.ExtendedCopyGraphOptions{
-		FindPredecessors: func(ctx context.Context, src content.ReadOnlyGraphStorage, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
+		FindPredecessors: func(ctx context.Context, src content.ReadOnlyGraphStorage, desc v1.Descriptor) ([]v1.Descriptor, error) {
 			predecessors, err := src.Predecessors(ctx, desc)
 			if err != nil {
 				return nil, err
 			}
-			var filtered []ocispec.Descriptor
+			var filtered []v1.Descriptor
 			for _, p := range predecessors {
 				// filter media type
 				switch p.MediaType {
-				case ocispec.MediaTypeArtifactManifest:
+				case v1.MediaTypeArtifactManifest:
 					filtered = append(filtered, p)
 				}
 			}
@@ -597,33 +595,32 @@ func TestExtendedCopy_NotFound(t *testing.T) {
 func TestExtendedCopyGraph_FilterAnnotationWithRegex(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte, key string, value string) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType:   mediaType,
 			Digest:      digest.FromBytes(blob),
 			Size:        int64(len(blob)),
 			Annotations: map[string]string{key: value},
 		})
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, key string, value string) {
-		var manifest artifactspec.Manifest
-		artifactSubject := descriptor.OCIToArtifact(subject)
-		manifest.Subject = &artifactSubject
+	generateArtifactManifest := func(subject v1.Descriptor, key string, value string) {
+		var manifest v1.Manifest
+		manifest.Subject = &subject
 		manifest.Annotations = map[string]string{key: value}
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(artifactspec.MediaTypeArtifactManifest, manifestJSON, key, value)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON, key, value)
 	}
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("foo"), "bar", "blackpink") // descs[0]
-	generateArtifactManifest(descs[0], "bar", "bluebrown")                     // descs[1]
-	generateArtifactManifest(descs[0], "bar", "blackred")                      // descs[2]
-	generateArtifactManifest(descs[0], "bar", "blackviolet")                   // descs[3]
-	generateArtifactManifest(descs[0], "bar", "greengrey")                     // descs[4]
-	generateArtifactManifest(descs[0], "bar", "brownblack")                    // descs[5]
+	appendBlob(v1.MediaTypeImageLayer, []byte("foo"), "bar", "blackpink") // descs[0]
+	generateArtifactManifest(descs[0], "bar", "bluebrown")                // descs[1]
+	generateArtifactManifest(descs[0], "bar", "blackred")                 // descs[2]
+	generateArtifactManifest(descs[0], "bar", "blackviolet")              // descs[3]
+	generateArtifactManifest(descs[0], "bar", "greengrey")                // descs[4]
+	generateArtifactManifest(descs[0], "bar", "brownblack")               // descs[5]
 	ctx := context.Background()
 	verifyCopy := func(dst content.Fetcher, copiedIndice []int, uncopiedIndice []int) {
 		for _, i := range copiedIndice {
@@ -693,34 +690,33 @@ func TestExtendedCopyGraph_FilterAnnotationWithRegex(t *testing.T) {
 func TestExtendedCopyGraph_FilterAnnotationWithMultipleRegex(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte, key string, value string) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType:   mediaType,
 			Digest:      digest.FromBytes(blob),
 			Size:        int64(len(blob)),
 			Annotations: map[string]string{key: value},
 		})
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, key string, value string) {
-		var manifest artifactspec.Manifest
-		artifactSubject := descriptor.OCIToArtifact(subject)
-		manifest.Subject = &artifactSubject
+	generateArtifactManifest := func(subject v1.Descriptor, key string, value string) {
+		var manifest v1.Manifest
+		manifest.Subject = &subject
 		manifest.Annotations = map[string]string{key: value}
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(artifactspec.MediaTypeArtifactManifest, manifestJSON, key, value)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON, key, value)
 	}
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("foo"), "bar", "blackpink") // descs[0]
-	generateArtifactManifest(descs[0], "bar", "bluebrown")                     // descs[1]
-	generateArtifactManifest(descs[0], "bar", "blackred")                      // descs[2]
-	generateArtifactManifest(descs[0], "bar", "blackviolet")                   // descs[3]
-	generateArtifactManifest(descs[0], "bar", "greengrey")                     // descs[4]
-	generateArtifactManifest(descs[0], "bar", "brownblack")                    // descs[5]
-	generateArtifactManifest(descs[0], "bar", "blackblack")                    // descs[6]
+	appendBlob(v1.MediaTypeImageLayer, []byte("foo"), "bar", "blackpink") // descs[0]
+	generateArtifactManifest(descs[0], "bar", "bluebrown")                // descs[1]
+	generateArtifactManifest(descs[0], "bar", "blackred")                 // descs[2]
+	generateArtifactManifest(descs[0], "bar", "blackviolet")              // descs[3]
+	generateArtifactManifest(descs[0], "bar", "greengrey")                // descs[4]
+	generateArtifactManifest(descs[0], "bar", "brownblack")               // descs[5]
+	generateArtifactManifest(descs[0], "bar", "blackblack")               // descs[6]
 	ctx := context.Background()
 	verifyCopy := func(dst content.Fetcher, copiedIndice []int, uncopiedIndice []int) {
 		for _, i := range copiedIndice {
@@ -799,27 +795,26 @@ func TestExtendedCopyGraph_FilterAnnotationWithMultipleRegex(t *testing.T) {
 func TestExtendedCopyGraph_FilterAnnotationWithRegexNoAnnotationInDescriptor(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, key string, value string) {
-		var manifest artifactspec.Manifest
-		artifactSubject := descriptor.OCIToArtifact(subject)
-		manifest.Subject = &artifactSubject
+	generateArtifactManifest := func(subject v1.Descriptor, key string, value string) {
+		var manifest v1.Artifact
+		manifest.Subject = &subject
 		manifest.Annotations = map[string]string{key: value}
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(artifactspec.MediaTypeArtifactManifest, manifestJSON)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON)
 	}
-	appendBlob(ocispec.MediaTypeImageLayer, []byte("foo"))   // descs[0]
+	appendBlob(v1.MediaTypeImageLayer, []byte("foo"))        // descs[0]
 	generateArtifactManifest(descs[0], "bar", "bluebrown")   // descs[1]
 	generateArtifactManifest(descs[0], "bar", "blackred")    // descs[2]
 	generateArtifactManifest(descs[0], "bar", "blackviolet") // descs[3]
@@ -867,33 +862,32 @@ func TestExtendedCopyGraph_FilterAnnotationWithRegexNoAnnotationInDescriptor(t *
 func TestExtendedCopyGraph_FilterArtifactTypeWithRegex(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, artifactType string) {
-		var manifest artifactspec.Manifest
-		artifactSubject := descriptor.OCIToArtifact(subject)
-		manifest.Subject = &artifactSubject
+	generateArtifactManifest := func(subject v1.Descriptor, artifactType string) {
+		var manifest v1.Artifact
+		manifest.Subject = &subject
 		manifest.ArtifactType = artifactType
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(artifactspec.MediaTypeArtifactManifest, manifestJSON)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON)
 	}
 
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("foo")) // descs[0]
-	generateArtifactManifest(descs[0], "good-bar-yellow")   // descs[1]
-	generateArtifactManifest(descs[0], "bad-woo-red")       // descs[2]
-	generateArtifactManifest(descs[0], "bad-bar-blue")      // descs[3]
-	generateArtifactManifest(descs[0], "bad-bar-red")       // descs[4]
-	generateArtifactManifest(descs[0], "good-woo-pink")     // descs[5]
+	appendBlob(v1.MediaTypeImageConfig, []byte("foo"))    // descs[0]
+	generateArtifactManifest(descs[0], "good-bar-yellow") // descs[1]
+	generateArtifactManifest(descs[0], "bad-woo-red")     // descs[2]
+	generateArtifactManifest(descs[0], "bad-bar-blue")    // descs[3]
+	generateArtifactManifest(descs[0], "bad-bar-red")     // descs[4]
+	generateArtifactManifest(descs[0], "good-woo-pink")   // descs[5]
 
 	ctx := context.Background()
 	verifyCopy := func(dst content.Fetcher, copiedIndice []int, uncopiedIndice []int) {
@@ -948,32 +942,31 @@ func TestExtendedCopyGraph_FilterArtifactTypeWithRegex(t *testing.T) {
 func TestExtendedCopyGraph_FilterArtifactTypeWithMultipleRegex(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, artifactType string) {
-		var manifest artifactspec.Manifest
-		artifactSubject := descriptor.OCIToArtifact(subject)
-		manifest.Subject = &artifactSubject
+	generateArtifactManifest := func(subject v1.Descriptor, artifactType string) {
+		var manifest v1.Artifact
+		manifest.Subject = &subject
 		manifest.ArtifactType = artifactType
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(artifactspec.MediaTypeArtifactManifest, manifestJSON)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON)
 	}
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("foo")) // descs[0]
-	generateArtifactManifest(descs[0], "good-bar-yellow")   // descs[1]
-	generateArtifactManifest(descs[0], "bad-woo-red")       // descs[2]
-	generateArtifactManifest(descs[0], "bad-bar-blue")      // descs[3]
-	generateArtifactManifest(descs[0], "bad-bar-red")       // descs[4]
-	generateArtifactManifest(descs[0], "good-woo-pink")     // descs[5]
+	appendBlob(v1.MediaTypeImageConfig, []byte("foo"))    // descs[0]
+	generateArtifactManifest(descs[0], "good-bar-yellow") // descs[1]
+	generateArtifactManifest(descs[0], "bad-woo-red")     // descs[2]
+	generateArtifactManifest(descs[0], "bad-bar-blue")    // descs[3]
+	generateArtifactManifest(descs[0], "bad-bar-red")     // descs[4]
+	generateArtifactManifest(descs[0], "good-woo-pink")   // descs[5]
 
 	ctx := context.Background()
 	verifyCopy := func(dst content.Fetcher, copiedIndice []int, uncopiedIndice []int) {
@@ -1041,29 +1034,28 @@ func TestExtendedCopyGraph_FilterArtifactTypeWithMultipleRegex(t *testing.T) {
 func TestExtendedCopyGraph_FilterArtifactTypeByReferrersWithMultipleRegex(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
-	var referrerSet []ocispec.Descriptor
+	var descs []v1.Descriptor
+	var referrerSet []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType: mediaType,
 			Digest:    digest.FromBytes(blob),
 			Size:      int64(len(blob)),
 		})
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, artifactType string) {
-		var manifest artifactspec.Manifest
-		artifactSubject := descriptor.OCIToArtifact(subject)
-		manifest.Subject = &artifactSubject
+	generateArtifactManifest := func(subject v1.Descriptor, artifactType string) {
+		var manifest v1.Artifact
+		manifest.Subject = &subject
 		manifest.ArtifactType = artifactType
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(artifactspec.MediaTypeArtifactManifest, manifestJSON)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON)
 	}
-	pushReferrers := func(desc ocispec.Descriptor, artifactType string) {
-		referrerSet = append(referrerSet, ocispec.Descriptor{
+	pushReferrers := func(desc v1.Descriptor, artifactType string) {
+		referrerSet = append(referrerSet, v1.Descriptor{
 			MediaType:    desc.MediaType,
 			ArtifactType: artifactType,
 			Digest:       desc.Digest,
@@ -1071,12 +1063,12 @@ func TestExtendedCopyGraph_FilterArtifactTypeByReferrersWithMultipleRegex(t *tes
 		})
 	}
 
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("foo")) // descs[0]
-	generateArtifactManifest(descs[0], "good-bar-yellow")   // descs[1]
-	generateArtifactManifest(descs[0], "bad-woo-red")       // descs[2]
-	generateArtifactManifest(descs[0], "bad-bar-blue")      // descs[3]
-	generateArtifactManifest(descs[0], "bad-bar-red")       // descs[4]
-	generateArtifactManifest(descs[0], "good-woo-pink")     // descs[5]
+	appendBlob(v1.MediaTypeImageConfig, []byte("foo"))    // descs[0]
+	generateArtifactManifest(descs[0], "good-bar-yellow") // descs[1]
+	generateArtifactManifest(descs[0], "bad-woo-red")     // descs[2]
+	generateArtifactManifest(descs[0], "bad-bar-blue")    // descs[3]
+	generateArtifactManifest(descs[0], "bad-bar-red")     // descs[4]
+	generateArtifactManifest(descs[0], "good-woo-pink")   // descs[5]
 	pushReferrers(descs[1], "good-bar-yellow")
 	pushReferrers(descs[2], "bad-woo-red")
 	pushReferrers(descs[3], "bad-bar-blue")
@@ -1089,43 +1081,43 @@ func TestExtendedCopyGraph_FilterArtifactTypeByReferrersWithMultipleRegex(t *tes
 		w.Header().Set("ORAS-Api-Version", "oras/1.0")
 		switch {
 		case strings.Contains(p, descs[0].Digest.String()):
-			w.Header().Set("Content-Type", ocispec.MediaTypeImageConfig)
+			w.Header().Set("Content-Type", v1.MediaTypeImageConfig)
 			w.Header().Set("Content-Digest", descs[0].Digest.String())
 			w.Header().Set("Content-Length", strconv.Itoa(len(blobs[0])))
 			w.Write(blobs[0])
 		case strings.Contains(p, descs[1].Digest.String()):
-			w.Header().Set("Content-Type", artifactspec.MediaTypeArtifactManifest)
+			w.Header().Set("Content-Type", v1.MediaTypeArtifactManifest)
 			w.Header().Set("Content-Digest", descs[1].Digest.String())
 			w.Header().Set("Content-Length", strconv.Itoa(len(blobs[1])))
 			w.Write(blobs[1])
 		case strings.Contains(p, descs[2].Digest.String()):
-			w.Header().Set("Content-Type", artifactspec.MediaTypeArtifactManifest)
+			w.Header().Set("Content-Type", v1.MediaTypeArtifactManifest)
 			w.Header().Set("Content-Digest", descs[2].Digest.String())
 			w.Header().Set("Content-Length", strconv.Itoa(len(blobs[2])))
 			w.Write(blobs[2])
 		case strings.Contains(p, descs[3].Digest.String()):
-			w.Header().Set("Content-Type", artifactspec.MediaTypeArtifactManifest)
+			w.Header().Set("Content-Type", v1.MediaTypeArtifactManifest)
 			w.Header().Set("Content-Digest", descs[3].Digest.String())
 			w.Header().Set("Content-Length", strconv.Itoa(len(blobs[3])))
 			w.Write(blobs[3])
 		case strings.Contains(p, descs[4].Digest.String()):
-			w.Header().Set("Content-Type", artifactspec.MediaTypeArtifactManifest)
+			w.Header().Set("Content-Type", v1.MediaTypeArtifactManifest)
 			w.Header().Set("Content-Digest", descs[4].Digest.String())
 			w.Header().Set("Content-Length", strconv.Itoa(len(blobs[4])))
 			w.Write(blobs[4])
 		case strings.Contains(p, descs[5].Digest.String()):
-			w.Header().Set("Content-Type", artifactspec.MediaTypeArtifactManifest)
+			w.Header().Set("Content-Type", v1.MediaTypeArtifactManifest)
 			w.Header().Set("Content-Digest", descs[5].Digest.String())
 			w.Header().Set("Content-Length", strconv.Itoa(len(blobs[5])))
 			w.Write(blobs[5])
 		case strings.Contains(p, "referrers"):
 			q := r.URL.Query()
-			var referrers []ocispec.Descriptor
+			var referrers []v1.Descriptor
 			if q.Get("digest") == descs[0].Digest.String() {
 				referrers = referrerSet
 			}
 			result := struct {
-				Referrers []ocispec.Descriptor `json:"referrers"`
+				Referrers []v1.Descriptor `json:"referrers"`
 			}{
 				Referrers: referrers,
 			}
@@ -1189,38 +1181,37 @@ func TestExtendedCopyGraph_FilterArtifactTypeByReferrersWithMultipleRegex(t *tes
 func TestExtendedCopyGraph_FilterArtifactTypeAndAnnotationWithMultipleRegex(t *testing.T) {
 	// generate test content
 	var blobs [][]byte
-	var descs []ocispec.Descriptor
+	var descs []v1.Descriptor
 	appendBlob := func(mediaType string, blob []byte, value string) {
 		blobs = append(blobs, blob)
-		descs = append(descs, ocispec.Descriptor{
+		descs = append(descs, v1.Descriptor{
 			MediaType:   mediaType,
 			Digest:      digest.FromBytes(blob),
 			Size:        int64(len(blob)),
 			Annotations: map[string]string{"rank": value},
 		})
 	}
-	generateArtifactManifest := func(subject ocispec.Descriptor, artifactType string, value string) {
-		var manifest artifactspec.Manifest
-		artifactSubject := descriptor.OCIToArtifact(subject)
-		manifest.Subject = &artifactSubject
+	generateArtifactManifest := func(subject v1.Descriptor, artifactType string, value string) {
+		var manifest v1.Artifact
+		manifest.Subject = &subject
 		manifest.ArtifactType = artifactType
 		manifest.Annotations = map[string]string{"rank": value}
 		manifestJSON, err := json.Marshal(manifest)
 		if err != nil {
 			t.Fatal(err)
 		}
-		appendBlob(artifactspec.MediaTypeArtifactManifest, manifestJSON, value)
+		appendBlob(v1.MediaTypeArtifactManifest, manifestJSON, value)
 	}
-	appendBlob(ocispec.MediaTypeImageConfig, []byte("foo"), "na") // descs[0]
-	generateArtifactManifest(descs[0], "good-bar-yellow", "1st")  // descs[1]
-	generateArtifactManifest(descs[0], "bad-woo-red", "1st")      // descs[2]
-	generateArtifactManifest(descs[0], "bad-bar-blue", "2nd")     // descs[3]
-	generateArtifactManifest(descs[0], "bad-bar-red", "3rd")      // descs[4]
-	generateArtifactManifest(descs[0], "good-woo-pink", "2nd")    // descs[5]
-	generateArtifactManifest(descs[0], "good-foo-blue", "3rd")    // descs[6]
-	generateArtifactManifest(descs[0], "bad-bar-orange", "4th")   // descs[7]
-	generateArtifactManifest(descs[0], "bad-woo-white", "4th")    // descs[8]
-	generateArtifactManifest(descs[0], "good-woo-orange", "na")   // descs[9]
+	appendBlob(v1.MediaTypeImageConfig, []byte("foo"), "na")     // descs[0]
+	generateArtifactManifest(descs[0], "good-bar-yellow", "1st") // descs[1]
+	generateArtifactManifest(descs[0], "bad-woo-red", "1st")     // descs[2]
+	generateArtifactManifest(descs[0], "bad-bar-blue", "2nd")    // descs[3]
+	generateArtifactManifest(descs[0], "bad-bar-red", "3rd")     // descs[4]
+	generateArtifactManifest(descs[0], "good-woo-pink", "2nd")   // descs[5]
+	generateArtifactManifest(descs[0], "good-foo-blue", "3rd")   // descs[6]
+	generateArtifactManifest(descs[0], "bad-bar-orange", "4th")  // descs[7]
+	generateArtifactManifest(descs[0], "bad-woo-white", "4th")   // descs[8]
+	generateArtifactManifest(descs[0], "good-woo-orange", "na")  // descs[9]
 
 	ctx := context.Background()
 	verifyCopy := func(dst content.Fetcher, copiedIndice []int, uncopiedIndice []int) {

@@ -21,8 +21,7 @@ import (
 	"errors"
 	"regexp"
 
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/internal/copyutil"
 	"oras.land/oras-go/v2/internal/descriptor"
@@ -56,7 +55,7 @@ type ExtendedCopyGraphOptions struct {
 	Depth int
 	// FindPredecessors finds the predecessors of the current node.
 	// If FindPredecessors is nil, src.Predecessors will be adapted and used.
-	FindPredecessors func(ctx context.Context, src content.ReadOnlyGraphStorage, desc ocispec.Descriptor) ([]ocispec.Descriptor, error)
+	FindPredecessors func(ctx context.Context, src content.ReadOnlyGraphStorage, desc v1.Descriptor) ([]v1.Descriptor, error)
 }
 
 // ExtendedCopy copies the directed acyclic graph (DAG) that are reachable from
@@ -64,12 +63,12 @@ type ExtendedCopyGraphOptions struct {
 // The destination reference will be the same as the source reference if the
 // destination reference is left blank.
 // Returns the descriptor of the tagged node on successful copy.
-func ExtendedCopy(ctx context.Context, src ReadOnlyGraphTarget, srcRef string, dst Target, dstRef string, opts ExtendedCopyOptions) (ocispec.Descriptor, error) {
+func ExtendedCopy(ctx context.Context, src ReadOnlyGraphTarget, srcRef string, dst Target, dstRef string, opts ExtendedCopyOptions) (v1.Descriptor, error) {
 	if src == nil {
-		return ocispec.Descriptor{}, errors.New("nil source graph target")
+		return v1.Descriptor{}, errors.New("nil source graph target")
 	}
 	if dst == nil {
-		return ocispec.Descriptor{}, errors.New("nil destination target")
+		return v1.Descriptor{}, errors.New("nil destination target")
 	}
 	if dstRef == "" {
 		dstRef = srcRef
@@ -77,15 +76,15 @@ func ExtendedCopy(ctx context.Context, src ReadOnlyGraphTarget, srcRef string, d
 
 	node, err := src.Resolve(ctx, srcRef)
 	if err != nil {
-		return ocispec.Descriptor{}, err
+		return v1.Descriptor{}, err
 	}
 
 	if err := ExtendedCopyGraph(ctx, src, dst, node, opts.ExtendedCopyGraphOptions); err != nil {
-		return ocispec.Descriptor{}, err
+		return v1.Descriptor{}, err
 	}
 
 	if err := dst.Tag(ctx, node, dstRef); err != nil {
-		return ocispec.Descriptor{}, err
+		return v1.Descriptor{}, err
 	}
 
 	return node, nil
@@ -93,7 +92,7 @@ func ExtendedCopy(ctx context.Context, src ReadOnlyGraphTarget, srcRef string, d
 
 // ExtendedCopyGraph copies the directed acyclic graph (DAG) that are reachable
 // from the given node from the source GraphStorage to the destination Storage.
-func ExtendedCopyGraph(ctx context.Context, src content.ReadOnlyGraphStorage, dst content.Storage, node ocispec.Descriptor, opts ExtendedCopyGraphOptions) error {
+func ExtendedCopyGraph(ctx context.Context, src content.ReadOnlyGraphStorage, dst content.Storage, node v1.Descriptor, opts ExtendedCopyGraphOptions) error {
 	roots, err := findRoots(ctx, src, node, opts)
 	if err != nil {
 		return err
@@ -111,10 +110,10 @@ func ExtendedCopyGraph(ctx context.Context, src content.ReadOnlyGraphStorage, ds
 
 // findRoots finds the root nodes reachable from the given node through a
 // depth-first search.
-func findRoots(ctx context.Context, storage content.ReadOnlyGraphStorage, node ocispec.Descriptor, opts ExtendedCopyGraphOptions) (map[descriptor.Descriptor]ocispec.Descriptor, error) {
+func findRoots(ctx context.Context, storage content.ReadOnlyGraphStorage, node v1.Descriptor, opts ExtendedCopyGraphOptions) (map[descriptor.Descriptor]v1.Descriptor, error) {
 	visited := make(map[descriptor.Descriptor]bool)
-	roots := make(map[descriptor.Descriptor]ocispec.Descriptor)
-	addRoot := func(key descriptor.Descriptor, val ocispec.Descriptor) {
+	roots := make(map[descriptor.Descriptor]v1.Descriptor)
+	addRoot := func(key descriptor.Descriptor, val v1.Descriptor) {
 		if _, exists := roots[key]; !exists {
 			roots[key] = val
 		}
@@ -122,7 +121,7 @@ func findRoots(ctx context.Context, storage content.ReadOnlyGraphStorage, node o
 
 	// if FindPredecessors is not provided, use the default one
 	if opts.FindPredecessors == nil {
-		opts.FindPredecessors = func(ctx context.Context, src content.ReadOnlyGraphStorage, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
+		opts.FindPredecessors = func(ctx context.Context, src content.ReadOnlyGraphStorage, desc v1.Descriptor) ([]v1.Descriptor, error) {
 			return src.Predecessors(ctx, desc)
 		}
 	}
@@ -183,8 +182,8 @@ func findRoots(ctx context.Context, storage content.ReadOnlyGraphStorage, node o
 // FilterAnnotation, it's recommended to call FilterArtifactType first.
 func (opts *ExtendedCopyGraphOptions) FilterAnnotation(key string, regex *regexp.Regexp) {
 	fp := opts.FindPredecessors
-	opts.FindPredecessors = func(ctx context.Context, src content.ReadOnlyGraphStorage, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
-		var predecessors []ocispec.Descriptor
+	opts.FindPredecessors = func(ctx context.Context, src content.ReadOnlyGraphStorage, desc v1.Descriptor) ([]v1.Descriptor, error) {
+		var predecessors []v1.Descriptor
 		var err error
 		if fp == nil {
 			predecessors, err = src.Predecessors(ctx, desc)
@@ -194,13 +193,13 @@ func (opts *ExtendedCopyGraphOptions) FilterAnnotation(key string, regex *regexp
 		if err != nil {
 			return nil, err
 		}
-		var filtered []ocispec.Descriptor
+		var filtered []v1.Descriptor
 		for _, p := range predecessors {
 			if p.Annotations == nil {
 				switch p.MediaType {
-				case docker.MediaTypeManifest, ocispec.MediaTypeImageManifest,
-					docker.MediaTypeManifestList, ocispec.MediaTypeImageIndex,
-					artifactspec.MediaTypeArtifactManifest:
+				case docker.MediaTypeManifest, v1.MediaTypeImageManifest,
+					docker.MediaTypeManifestList, v1.MediaTypeImageIndex,
+					v1.MediaTypeArtifactManifest:
 					if err = func() error {
 						rc, err := src.Fetch(ctx, p)
 						if err != nil {
@@ -242,8 +241,8 @@ func (opts *ExtendedCopyGraphOptions) FilterArtifactType(regex *regexp.Regexp) {
 		return
 	}
 	fp := opts.FindPredecessors
-	opts.FindPredecessors = func(ctx context.Context, src content.ReadOnlyGraphStorage, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
-		var predecessors []ocispec.Descriptor
+	opts.FindPredecessors = func(ctx context.Context, src content.ReadOnlyGraphStorage, desc v1.Descriptor) ([]v1.Descriptor, error) {
+		var predecessors []v1.Descriptor
 		var err error
 		if fp == nil {
 			// if src is a ReferrerFinder, use Referrers() to filter the predecessors.
@@ -257,17 +256,17 @@ func (opts *ExtendedCopyGraphOptions) FilterArtifactType(regex *regexp.Regexp) {
 		if err != nil {
 			return nil, err
 		}
-		var filtered []ocispec.Descriptor
+		var filtered []v1.Descriptor
 		// for each predecessor, decode the manifest and check its artifact type.
 		for _, p := range predecessors {
-			if p.MediaType == artifactspec.MediaTypeArtifactManifest {
+			if p.MediaType == v1.MediaTypeArtifactManifest {
 				if err = func() error {
 					rc, err := src.Fetch(ctx, p)
 					if err != nil {
 						return err
 					}
 					defer rc.Close()
-					var manifest artifactspec.Manifest
+					var manifest v1.Artifact
 					if err := json.NewDecoder(rc).Decode(&manifest); err != nil {
 						return err
 					}
@@ -285,9 +284,9 @@ func (opts *ExtendedCopyGraphOptions) FilterArtifactType(regex *regexp.Regexp) {
 }
 
 // findReferrersAndFilter filters the predecessors with Referrers.
-func findReferrersAndFilter(rf registry.ReferrerFinder, ctx context.Context, desc ocispec.Descriptor, regex *regexp.Regexp) ([]ocispec.Descriptor, error) {
-	var predecessors []ocispec.Descriptor
-	if err := rf.Referrers(ctx, desc, "", func(referrers []ocispec.Descriptor) error {
+func findReferrersAndFilter(rf registry.ReferrerFinder, ctx context.Context, desc v1.Descriptor, regex *regexp.Regexp) ([]v1.Descriptor, error) {
+	var predecessors []v1.Descriptor
+	if err := rf.Referrers(ctx, desc, "", func(referrers []v1.Descriptor) error {
 		// for each page of the results, do the following:
 		for _, referrer := range referrers {
 			if regex.MatchString(referrer.ArtifactType) {
