@@ -25,11 +25,9 @@ import (
 	"testing"
 	"time"
 
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
-
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2/content/memory"
 )
 
@@ -38,19 +36,19 @@ func Test_Pack_Default(t *testing.T) {
 
 	// prepare test content
 	layer_1 := []byte("hello world")
-	desc_1 := ocispec.Descriptor{
+	desc_1 := v1.Descriptor{
 		MediaType: "test",
 		Digest:    digest.FromBytes(layer_1),
 		Size:      int64(len(layer_1)),
 	}
 
 	layer_2 := []byte("goodbye world")
-	desc_2 := ocispec.Descriptor{
+	desc_2 := v1.Descriptor{
 		MediaType: "test",
 		Digest:    digest.FromBytes(layer_2),
 		Size:      int64(len(layer_2)),
 	}
-	layers := []ocispec.Descriptor{
+	layers := []v1.Descriptor{
 		desc_1,
 		desc_2,
 	}
@@ -63,12 +61,12 @@ func Test_Pack_Default(t *testing.T) {
 	}
 
 	expectedConfigBytes := []byte("{}")
-	expectedManifest := ocispec.Manifest{
+	expectedManifest := v1.Manifest{
 		Versioned: specs.Versioned{
 			SchemaVersion: 2, // historical value. does not pertain to OCI or docker version
 		},
-		MediaType: ocispec.MediaTypeImageManifest,
-		Config: ocispec.Descriptor{
+		MediaType: v1.MediaTypeImageManifest,
+		Config: v1.Descriptor{
 			MediaType: MediaTypeUnknownConfig,
 			Digest:    digest.FromBytes(expectedConfigBytes),
 			Size:      int64(len(expectedConfigBytes)),
@@ -102,24 +100,24 @@ func Test_Pack_WithOptions(t *testing.T) {
 
 	// prepare test content
 	layer_1 := []byte("hello world")
-	desc_1 := ocispec.Descriptor{
+	desc_1 := v1.Descriptor{
 		MediaType: "test",
 		Digest:    digest.FromBytes(layer_1),
 		Size:      int64(len(layer_1)),
 	}
 
 	layer_2 := []byte("goodbye world")
-	desc_2 := ocispec.Descriptor{
+	desc_2 := v1.Descriptor{
 		MediaType: "test",
 		Digest:    digest.FromBytes(layer_2),
 		Size:      int64(len(layer_2)),
 	}
-	layers := []ocispec.Descriptor{
+	layers := []v1.Descriptor{
 		desc_1,
 		desc_2,
 	}
 	configBytes := []byte("{}")
-	configDesc := ocispec.Descriptor{
+	configDesc := v1.Descriptor{
 		MediaType: MediaTypeUnknownConfig,
 		Digest:    digest.FromBytes(configBytes),
 		Size:      int64(len(configBytes)),
@@ -133,7 +131,7 @@ func Test_Pack_WithOptions(t *testing.T) {
 	opts := PackOptions{
 		ConfigDescriptor:    &configDesc,
 		ConfigAnnotations:   annotations,
-		ConfigMediaType:     ocispec.MediaTypeImageConfig,
+		ConfigMediaType:     v1.MediaTypeImageConfig,
 		ManifestAnnotations: annotations,
 	}
 	manifestDesc, err := Pack(ctx, s, layers, opts)
@@ -141,11 +139,11 @@ func Test_Pack_WithOptions(t *testing.T) {
 		t.Fatal("Oras.Pack() error =", err)
 	}
 
-	expectedManifest := ocispec.Manifest{
+	expectedManifest := v1.Manifest{
 		Versioned: specs.Versioned{
 			SchemaVersion: 2, // historical value. does not pertain to OCI or docker version
 		},
-		MediaType:   ocispec.MediaTypeImageManifest,
+		MediaType:   v1.MediaTypeImageManifest,
 		Config:      configDesc,
 		Layers:      layers,
 		Annotations: annotations,
@@ -183,17 +181,17 @@ func Test_Pack_NoLayer(t *testing.T) {
 	}
 
 	expectedConfigBytes := []byte("{}")
-	expectedManifest := ocispec.Manifest{
+	expectedManifest := v1.Manifest{
 		Versioned: specs.Versioned{
 			SchemaVersion: 2, // historical value. does not pertain to OCI or docker version
 		},
-		MediaType: ocispec.MediaTypeImageManifest,
-		Config: ocispec.Descriptor{
+		MediaType: v1.MediaTypeImageManifest,
+		Config: v1.Descriptor{
 			MediaType: MediaTypeUnknownConfig,
 			Digest:    digest.FromBytes(expectedConfigBytes),
 			Size:      int64(len(expectedConfigBytes)),
 		},
-		Layers: []ocispec.Descriptor{},
+		Layers: []v1.Descriptor{},
 	}
 	expectedManifestBytes, err := json.Marshal(expectedManifest)
 	if err != nil {
@@ -223,19 +221,19 @@ func Test_PackArtifact_Default(t *testing.T) {
 
 	// prepare test content
 	blob_1 := []byte("hello world")
-	desc_1 := artifactspec.Descriptor{
+	desc_1 := v1.Descriptor{
 		MediaType: "test",
 		Digest:    digest.FromBytes(blob_1),
 		Size:      int64(len(blob_1)),
 	}
 
 	blob_2 := []byte("goodbye world")
-	desc_2 := artifactspec.Descriptor{
+	desc_2 := v1.Descriptor{
 		MediaType: "test",
 		Digest:    digest.FromBytes(blob_2),
 		Size:      int64(len(blob_2)),
 	}
-	blobs := []artifactspec.Descriptor{
+	blobs := []v1.Descriptor{
 		desc_1,
 		desc_2,
 	}
@@ -249,7 +247,7 @@ func Test_PackArtifact_Default(t *testing.T) {
 	}
 
 	// test blobs
-	var manifest artifactspec.Manifest
+	var manifest v1.Artifact
 	rc, err := s.Fetch(ctx, manifestDesc)
 	if err != nil {
 		t.Fatal("Store.Fetch() error =", err)
@@ -266,8 +264,8 @@ func Test_PackArtifact_Default(t *testing.T) {
 
 	// test media type
 	got := manifest.MediaType
-	if got != artifactspec.MediaTypeArtifactManifest {
-		t.Fatalf("got media type = %s, want %s", got, artifactspec.MediaTypeArtifactManifest)
+	if got != v1.MediaTypeArtifactManifest {
+		t.Fatalf("got media type = %s, want %s", got, v1.MediaTypeArtifactManifest)
 	}
 
 	// test artifact type
@@ -277,9 +275,9 @@ func Test_PackArtifact_Default(t *testing.T) {
 	}
 
 	// test created time annotation
-	createdTime, ok := manifest.Annotations[artifactspec.AnnotationArtifactCreated]
+	createdTime, ok := manifest.Annotations[v1.AnnotationArtifactCreated]
 	if !ok {
-		t.Errorf("Annotation %s = %v, want %v", artifactspec.AnnotationArtifactCreated, ok, true)
+		t.Errorf("Annotation %s = %v, want %v", v1.AnnotationArtifactCreated, ok, true)
 	}
 	_, err = time.Parse(time.RFC3339, createdTime)
 	if err != nil {
@@ -292,32 +290,32 @@ func Test_PackArtifact_WithOptions(t *testing.T) {
 
 	// prepare test content
 	blob_1 := []byte("hello world")
-	desc_1 := artifactspec.Descriptor{
+	desc_1 := v1.Descriptor{
 		MediaType: "test",
 		Digest:    digest.FromBytes(blob_1),
 		Size:      int64(len(blob_1)),
 	}
 
 	blob_2 := []byte("goodbye world")
-	desc_2 := artifactspec.Descriptor{
+	desc_2 := v1.Descriptor{
 		MediaType: "test",
 		Digest:    digest.FromBytes(blob_2),
 		Size:      int64(len(blob_2)),
 	}
-	blobs := []artifactspec.Descriptor{
+	blobs := []v1.Descriptor{
 		desc_1,
 		desc_2,
 	}
 
 	artifactType := "application/vnd.test"
 	subjectManifest := []byte(`{"layers":[]}`)
-	subjectDesc := artifactspec.Descriptor{
-		MediaType: ocispec.MediaTypeImageManifest,
+	subjectDesc := v1.Descriptor{
+		MediaType: v1.MediaTypeImageManifest,
 		Digest:    digest.FromBytes(subjectManifest),
 		Size:      int64(len(subjectManifest)),
 	}
 	annotations := map[string]string{
-		artifactspec.AnnotationArtifactCreated: "2000-01-01T00:00:00Z",
+		v1.AnnotationArtifactCreated: "2000-01-01T00:00:00Z",
 	}
 
 	// test PackArtifact
@@ -331,8 +329,8 @@ func Test_PackArtifact_WithOptions(t *testing.T) {
 		t.Fatal("Oras.PackArtifact() error =", err)
 	}
 
-	expectedManifest := artifactspec.Manifest{
-		MediaType:    artifactspec.MediaTypeArtifactManifest,
+	expectedManifest := v1.Artifact{
+		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: artifactType,
 		Blobs:        blobs,
 		Subject:      opts.Subject,
@@ -372,7 +370,7 @@ func Test_PackArtifact_NoBlob(t *testing.T) {
 		t.Fatal("Oras.Pack() error =", err)
 	}
 
-	var manifest artifactspec.Manifest
+	var manifest v1.Artifact
 	rc, err := s.Fetch(ctx, manifestDesc)
 	if err != nil {
 		t.Fatal("Store.Fetch() error =", err)
@@ -386,8 +384,8 @@ func Test_PackArtifact_NoBlob(t *testing.T) {
 
 	// test media type
 	got := manifest.MediaType
-	if got != artifactspec.MediaTypeArtifactManifest {
-		t.Fatalf("got media type = %s, want %s", got, artifactspec.MediaTypeArtifactManifest)
+	if got != v1.MediaTypeArtifactManifest {
+		t.Fatalf("got media type = %s, want %s", got, v1.MediaTypeArtifactManifest)
 	}
 
 	// test artifact type
@@ -397,9 +395,9 @@ func Test_PackArtifact_NoBlob(t *testing.T) {
 	}
 
 	// test created time annotation
-	createdTime, ok := manifest.Annotations[artifactspec.AnnotationArtifactCreated]
+	createdTime, ok := manifest.Annotations[v1.AnnotationArtifactCreated]
 	if !ok {
-		t.Errorf("Annotation %s = %v, want %v", artifactspec.AnnotationArtifactCreated, ok, true)
+		t.Errorf("Annotation %s = %v, want %v", v1.AnnotationArtifactCreated, ok, true)
 	}
 	_, err = time.Parse(time.RFC3339, createdTime)
 	if err != nil {
@@ -423,7 +421,7 @@ func Test_PackArtifact_InvalidDateTimeFormat(t *testing.T) {
 	ctx := context.Background()
 	opts := PackArtifactOptions{
 		ManifestAnnotations: map[string]string{
-			artifactspec.AnnotationArtifactCreated: "2000/01/01 00:00:00",
+			v1.AnnotationArtifactCreated: "2000/01/01 00:00:00",
 		},
 	}
 	artifactType := "application/vnd.test"

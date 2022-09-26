@@ -25,8 +25,7 @@ import (
 
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/errdef"
 )
@@ -49,7 +48,7 @@ var (
 // PackOptions contains parameters for oras.Pack.
 type PackOptions struct {
 	// ConfigDescriptor is a pointer to the descriptor of the config blob.
-	ConfigDescriptor *ocispec.Descriptor
+	ConfigDescriptor *v1.Descriptor
 	// ConfigMediaType is the media type of the config blob.
 	// If not specified, MediaTypeUnknownConfig will be used.
 	ConfigMediaType string
@@ -62,7 +61,7 @@ type PackOptions struct {
 // PackArtifactOptions contains parameters for oras.PackArtifact.
 type PackArtifactOptions struct {
 	// Subject is the subject of the ORAS Artifact Manifest.
-	Subject *artifactspec.Descriptor
+	Subject *v1.Descriptor
 	// ManifestAnnotations is the annotation map of the manifest.
 	ManifestAnnotations map[string]string
 }
@@ -70,12 +69,12 @@ type PackArtifactOptions struct {
 // Pack packs the given layers, generates a manifest for the pack,
 // and pushes it to a content storage.
 // If succeeded, returns a descriptor of the manifest.
-func Pack(ctx context.Context, pusher content.Pusher, layers []ocispec.Descriptor, opts PackOptions) (ocispec.Descriptor, error) {
+func Pack(ctx context.Context, pusher content.Pusher, layers []v1.Descriptor, opts PackOptions) (v1.Descriptor, error) {
 	if opts.ConfigMediaType == "" {
 		opts.ConfigMediaType = MediaTypeUnknownConfig
 	}
 
-	var configDesc ocispec.Descriptor
+	var configDesc v1.Descriptor
 	if opts.ConfigDescriptor != nil {
 		configDesc = *opts.ConfigDescriptor
 	} else {
@@ -84,7 +83,7 @@ func Pack(ctx context.Context, pusher content.Pusher, layers []ocispec.Descripto
 		// As of September 2022, GAR is known to return 400 on empty blob upload.
 		// See https://github.com/oras-project/oras-go/issues/294 for details.
 		configBytes := []byte("{}")
-		configDesc = ocispec.Descriptor{
+		configDesc = v1.Descriptor{
 			MediaType:   opts.ConfigMediaType,
 			Digest:      digest.FromBytes(configBytes),
 			Size:        int64(len(configBytes)),
@@ -93,36 +92,36 @@ func Pack(ctx context.Context, pusher content.Pusher, layers []ocispec.Descripto
 
 		// push config
 		if err := pusher.Push(ctx, configDesc, bytes.NewReader(configBytes)); err != nil && !errors.Is(err, errdef.ErrAlreadyExists) {
-			return ocispec.Descriptor{}, fmt.Errorf("failed to push config: %w", err)
+			return v1.Descriptor{}, fmt.Errorf("failed to push config: %w", err)
 		}
 	}
 
 	if layers == nil {
-		layers = []ocispec.Descriptor{} // make it an empty array to prevent potential server-side bugs
+		layers = []v1.Descriptor{} // make it an empty array to prevent potential server-side bugs
 	}
 
-	manifest := ocispec.Manifest{
+	manifest := v1.Manifest{
 		Versioned: specs.Versioned{
 			SchemaVersion: 2, // historical value. does not pertain to OCI or docker version
 		},
 		Config:      configDesc,
-		MediaType:   ocispec.MediaTypeImageManifest,
+		MediaType:   v1.MediaTypeImageManifest,
 		Layers:      layers,
 		Annotations: opts.ManifestAnnotations,
 	}
 	manifestBytes, err := json.Marshal(manifest)
 	if err != nil {
-		return ocispec.Descriptor{}, fmt.Errorf("failed to marshal manifest: %w", err)
+		return v1.Descriptor{}, fmt.Errorf("failed to marshal manifest: %w", err)
 	}
-	manifestDesc := ocispec.Descriptor{
-		MediaType: ocispec.MediaTypeImageManifest,
+	manifestDesc := v1.Descriptor{
+		MediaType: v1.MediaTypeImageManifest,
 		Digest:    digest.FromBytes(manifestBytes),
 		Size:      int64(len(manifestBytes)),
 	}
 
 	// push manifest
 	if err := pusher.Push(ctx, manifestDesc, bytes.NewReader(manifestBytes)); err != nil && !errors.Is(err, errdef.ErrAlreadyExists) {
-		return ocispec.Descriptor{}, fmt.Errorf("failed to push manifest: %w", err)
+		return v1.Descriptor{}, fmt.Errorf("failed to push manifest: %w", err)
 	}
 
 	return manifestDesc, nil
@@ -133,16 +132,16 @@ func Pack(ctx context.Context, pusher content.Pusher, layers []ocispec.Descripto
 // If succeeded, returns a descriptor of the manifest.
 // Returns ErrMissingArtifactType if artifactType is empty.
 // Reference: https://github.com/oras-project/artifacts-spec/blob/main/artifact-manifest.md
-func PackArtifact(ctx context.Context, pusher content.Pusher, artifactType string, blobs []artifactspec.Descriptor, opts PackArtifactOptions) (ocispec.Descriptor, error) {
+func PackArtifact(ctx context.Context, pusher content.Pusher, artifactType string, blobs []v1.Descriptor, opts PackArtifactOptions) (v1.Descriptor, error) {
 	if artifactType == "" {
 		// artifactType is required for ORAS Artifact Manifest
-		return ocispec.Descriptor{}, ErrMissingArtifactType
+		return v1.Descriptor{}, ErrMissingArtifactType
 	}
 
-	if createdTime, ok := opts.ManifestAnnotations[artifactspec.AnnotationArtifactCreated]; ok {
+	if createdTime, ok := opts.ManifestAnnotations[v1.AnnotationArtifactCreated]; ok {
 		// if AnnotationArtifactCreated is provided, validate its format
 		if _, err := time.Parse(time.RFC3339, createdTime); err != nil {
-			return ocispec.Descriptor{}, fmt.Errorf("%w: %v", ErrInvalidDateTimeFormat, err)
+			return v1.Descriptor{}, fmt.Errorf("%w: %v", ErrInvalidDateTimeFormat, err)
 		}
 	} else {
 		// copy the original annotation map
@@ -154,16 +153,16 @@ func PackArtifact(ctx context.Context, pusher content.Pusher, artifactType strin
 		// set creation time in RFC 3339 format
 		// reference: https://github.com/oras-project/artifacts-spec/blob/main/artifact-manifest.md#oras-artifact-manifest-properties
 		now := time.Now().UTC()
-		annotations[artifactspec.AnnotationArtifactCreated] = now.Format(time.RFC3339)
+		annotations[v1.AnnotationArtifactCreated] = now.Format(time.RFC3339)
 		opts.ManifestAnnotations = annotations
 	}
 
 	if blobs == nil {
-		blobs = []artifactspec.Descriptor{} // make it an empty array to prevent potential server-side bugs
+		blobs = []v1.Descriptor{} // make it an empty array to prevent potential server-side bugs
 	}
 
-	manifest := artifactspec.Manifest{
-		MediaType:    artifactspec.MediaTypeArtifactManifest,
+	manifest := v1.Artifact{
+		MediaType:    v1.MediaTypeArtifactManifest,
 		ArtifactType: artifactType,
 		Blobs:        blobs,
 		Subject:      opts.Subject,
@@ -171,18 +170,18 @@ func PackArtifact(ctx context.Context, pusher content.Pusher, artifactType strin
 	}
 	manifestBytes, err := json.Marshal(manifest)
 	if err != nil {
-		return ocispec.Descriptor{}, fmt.Errorf("failed to marshal manifest: %w", err)
+		return v1.Descriptor{}, fmt.Errorf("failed to marshal manifest: %w", err)
 	}
 
-	manifestDesc := ocispec.Descriptor{
-		MediaType: artifactspec.MediaTypeArtifactManifest,
+	manifestDesc := v1.Descriptor{
+		MediaType: v1.MediaTypeArtifactManifest,
 		Digest:    digest.FromBytes(manifestBytes),
 		Size:      int64(len(manifestBytes)),
 	}
 
 	// push manifest
 	if err := pusher.Push(ctx, manifestDesc, bytes.NewReader(manifestBytes)); err != nil && !errors.Is(err, errdef.ErrAlreadyExists) {
-		return ocispec.Descriptor{}, fmt.Errorf("failed to push manifest: %w", err)
+		return v1.Descriptor{}, fmt.Errorf("failed to push manifest: %w", err)
 	}
 
 	return manifestDesc, nil
