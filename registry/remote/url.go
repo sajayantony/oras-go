@@ -109,18 +109,18 @@ func buildArtifactReferrerURLLegacy(plainHTTP bool, ref registry.Reference, arti
 }
 
 // buildArtifactReferrerURL builds the URL for accessing the manifest referrers API in artifact spec v1.0.0-rc.1.
-// Format: <scheme>://<registry>/v2/<repository>/_oras/artifacts/referrers?digest=<digest>&artifactType=<artifactType>
-// Reference: https://github.com/oras-project/artifacts-spec/blob/v1.0.0-rc.1/manifest-referrers-api.md
+// Format: <scheme>://<registry>/v2/<repository>/referrers/<digest>&artifactType=<artifactType>
+// Reference: https://github.com/opencontainers/distribution-spec/blob/v1.1.0-rc1/spec.md#listing-referrers
 func buildArtifactReferrerURL(plainHTTP bool, ref registry.Reference, artifactType string) string {
 	v := url.Values{}
-	v.Set("digest", ref.Reference)
 	if artifactType != "" {
 		v.Set("artifactType", artifactType)
 	}
 
 	return fmt.Sprintf(
-		"%s/_oras/artifacts/referrers?%s",
+		"%s/referrers/%s/%s",
 		buildRepositoryBaseURL(plainHTTP, ref),
+		ref.Reference,
 		v.Encode(),
 	)
 }

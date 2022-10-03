@@ -286,9 +286,7 @@ func (r *Repository) tags(ctx context.Context, last string, fn func(tags []strin
 func (r *Repository) Predecessors(ctx context.Context, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
 	var res []ocispec.Descriptor
 	if err := r.Referrers(ctx, desc, "", func(referrers []ocispec.Descriptor) error {
-		for _, referrer := range referrers {
-			res = append(res, referrer)
-		}
+		res = append(res, referrers...)
 		return nil
 	}); err != nil {
 		return nil, err
@@ -351,26 +349,16 @@ func (r *Repository) referrers(ctx context.Context, artifactType string, fn func
 	if resp.StatusCode != http.StatusOK {
 		return "", errutil.ParseErrorResponse(resp)
 	}
-	if !legacyAPI {
-		if err := verifyOrasApiVersion(resp); err != nil {
-			return "", err
-		}
-	}
 
-	var page struct {
-		References []ocispec.Descriptor `json:"references"`
-		Referrers  []ocispec.Descriptor `json:"referrers"`
-	}
+	var page ocispec.Index
+
 	lr := limitReader(resp.Body, r.MaxMetadataBytes)
 	if err := json.NewDecoder(lr).Decode(&page); err != nil {
 		return "", fmt.Errorf("%s %q: failed to decode response: %w", resp.Request.Method, resp.Request.URL, err)
 	}
-	var refs []ocispec.Descriptor
-	if legacyAPI {
-		refs = page.References
-	} else {
-		refs = page.Referrers
-	}
+
+	refs := page.Manifests
+
 	// Server may not support filtering. We still need to filter on client side
 	// for sure.
 	refs = filterReferrers(refs, artifactType)
